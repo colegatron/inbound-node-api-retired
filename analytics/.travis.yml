@@ -1,0 +1,14 @@
+language: node_js
+node_js:
+- '0.10'
+services:
+- mongodb
+script:
+- make test
+deploy:
+  provider: nodejitsu
+  user: davidwells
+  api_key:
+    secure: N4msnOQLEvKh1Rw5RWEag+I6TsGLGj9N24GLkdjAVp9o2uEXv5Qb0tScF+rtaZercjd0JLJ5eKVy1HhQMGvwDlTOfZ8S7OVYoemMJspTQN1jZBbJSuGAJBhGj2iodqvOrfUmswmLa1T1XlHlQGe2XTcxIp1U5IlluHIP+hQ5u0Q=
+  on:
+    repo: JasonH1/Jax

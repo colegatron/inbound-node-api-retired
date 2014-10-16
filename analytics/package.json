@@ -1,0 +1,36 @@
+{
+  "name": "jax",
+  "version": "0.0.1-4",
+  "description": "Jax Analytics",
+  "homepage": "https://github.com/JasonH1/Jax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JasonH1/Jax"
+  },
+  "engines": {
+    "node": ">= 0.8.0",
+    "npm": ">= 1.0.0"
+  },
+  "dependencies": {
+    "express": "3.4.4",
+    "body-parser": ">=1.4.3",
+    "mongodb": ">=1.4.7",
+    "async": ">=0.9.0",
+    "mocha": ">=1.20.1",
+    "chai": ">=1.9.1",
+    "supertest": ">=0.13.0",
+    "jayschema": ">=0.2.7",
+    "jwt-simple": "~0.2.0",
+    "moment": "~2.7.0",
+    "cors": "~2.4.1"
+  },
+  "devDependencies": {},
+  "bundleDependencies": [],
+  "private": true,
+  "subdomain": "Jax-Analytics",
+  "main": "server.js",
+  "domains": [],
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <script src="//code.jquery.com/jquery-1.9.1.min.js"></script>
+
+    <script type='text/javascript' src='https://www.google.com/jsapi'></script>
+    <script type='text/javascript'>
+      google.load('visualization', '1', {packages:['table']});
+      google.setOnLoadCallback(drawTable);
+      function drawTable() {
+        var data = new google.visualization.DataTable();
+
+        $.ajax( {url:"/api/list_events?access_token=gE216KPqDIjGxu6uSTpO" })
+          .done(function( results ) {
+            var rowdata = [];
+            data.addColumn('string', '_id');
+            data.addColumn('string', 'License Key');
+            data.addColumn('string', 'lead_id');
+            data.addColumn('string', 'wordpress url');
+            for (var idx in results) {
+              var row = results[idx];
+              rowdata.push([row._id , row.license_key, row.lead_id, row.wordpress_url ]);
+            }
+            data.addRows(rowdata);
+            var table = new google.visualization.Table(document.getElementById('table_div'));
+            table.draw(data, {showRowNumber: true});
+
+          });
+      }
+    </script>
+  </head>
+
+  <body>
+    <h3>Please Note this exmaple has no pagination so the loading of the data might take awhile</h3>
+    <div id='table_div'></div>
+  </body>
+</html>
