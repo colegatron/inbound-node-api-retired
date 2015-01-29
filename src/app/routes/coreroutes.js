@@ -120,13 +120,18 @@ module.exports = function(app, passport) {
 				failureRedirect : '/'
 			}));
 
-	app.get('/api/test', isValidApiKey, function(req, res) {
-        //console.log(req.user.apiKey.key);
-        //  Morgan logging here
-        res.json({
-            'apikey': true,
-            'whatever': 'str'
-        });
+		/* API Key */
+		app.get('/api/test', isValidApiKey, function(req, res) {
+	        //console.log(req.user.apiKey.key);
+	        //  Morgan logging here
+	        res.json({
+	            'apikey': true,
+	            'whatever': 'str'
+	        });
+	    });
+	/* email route */
+	app.post('/send-email', function(req, res){
+        res.json({"editme": "Display Editor"});
     });
 
 };
