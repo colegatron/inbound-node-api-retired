@@ -131,7 +131,10 @@ module.exports = function(app, passport) {
 	    });
 	/* email route */
 	app.post('/send-email', function(req, res){
-        res.json({"editme": "Display Editor"});
+		console.log(req.body.mandrill);
+
+
+        //res.json({"editme": "Display Editor"});
     });
 
 };
