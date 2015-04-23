@@ -2,6 +2,7 @@ node_modules
 build
 config/secretDatabase.js
 config/secretAuth.js
+old2
 
 # OS generated files #
 ######################

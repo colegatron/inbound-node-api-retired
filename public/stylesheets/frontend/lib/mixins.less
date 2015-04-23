@@ -1,0 +1,92 @@
+.rotate-children-color(@n, @i: 2) when (@i =< @n) {
+  @color: lighten( spin(@brand-primary, (@i * 20)), 35% );
+  &:nth-child(@{i}) {
+    h1, h2, h3, h4, h5, h6 {
+      color: @color;
+    }
+    .icon-content {
+      background-color: @color;
+    }
+  }
+  .rotate-children-color(@n, (@i + 1));
+}
+
+.my-button-variant(@color; @background; @border) {
+  color: @color;
+  background-color: @background;
+  border-color: @border;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active,
+  .open .dropdown-toggle& {
+    color: @color;
+    background-color: darken(@background, 8%);
+        border-color: darken(@border, 8%);
+          box-shadow: none;
+  }
+  &:active,
+  &.active,
+  .open .dropdown-toggle& {
+    background-image: none;
+  }
+  &.disabled,
+  &[disabled],
+  fieldset[disabled] & {
+    &,
+    &:hover,
+    &:focus,
+    &:active,
+    &.active {
+      background-color: @background;
+          border-color: @border;
+            box-shadow: none;
+    }
+  }
+
+  .badge {
+    color: @background;
+    background-color: #fff;
+  }
+}
+
+.my-button-bordered-variant(@color; @background; @border) {
+  color: @color;
+  background-color: @background;
+  border-color: @border;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active,
+  .open .dropdown-toggle& {
+               color: darken(@color, 10%);
+    background-color: darken(@background, 8%);
+        border-color: darken(@border, 8%);
+          box-shadow: none;
+  }
+  &:active,
+  &.active,
+  .open .dropdown-toggle& {
+    background-image: none;
+  }
+  &.disabled,
+  &[disabled],
+  fieldset[disabled] & {
+    &,
+    &:hover,
+    &:focus,
+    &:active,
+    &.active {
+      background-color: @background;
+          border-color: @border;
+            box-shadow: none;
+    }
+  }
+
+  .badge {
+    color: @background;
+    background-color: #fff;
+  }
+}

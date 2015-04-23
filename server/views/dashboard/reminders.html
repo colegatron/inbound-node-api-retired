@@ -1,0 +1,55 @@
+{% extends '../layouts/dashboard.html' %}
+
+{% block title %}Reminders{% endblock %}
+
+{% block content %}
+  <div class="container-fluid ">
+    <div class="page-header">
+      <h1>Reminders</h1>
+      <h4>Here are all your current reminders</h4>
+      Count 10/15 for month
+    </div>
+    {% include "../partials/flash.html" %}
+
+
+    <div id="reminders-list">
+
+          {% for reminder in reminders %}
+          <section class="reminder-list-item call-to-action bg-primary sep-top-md sep-bottom-md">
+
+          <div class="row no-margin">
+            <div class="col-md-9">
+              <p class="lead"><i class="fa fa-calendar"></i>&nbsp;Scheduled for {{reminder.next_run}}</p>
+              <h5 class="action-title upper light">{{reminder.title}}</h5>
+              <h6><i class="fa fa-link"></i>&nbsp;{{reminder.url}}</h6>
+              {{reminder.message}}
+            </div>
+            <div class="col-md-3 text-center"><a href="contact-us.html" class="btn btn-light btn-bordered btn-lg btn-block"><i class="fa fa-clock-o"></i>&nbsp;Edit</a>
+            <a href="http://localhost:3001/deletereminder?remId={{reminder.remId}}" class="btn btn-dark btn-bordered btn-block btn-lg "><i class="fa fa-times-circle"></i>&nbsp;Delete</a>
+            </div>
+          </div>
+
+        </section>
+
+          {% endfor %}
+
+   </div>
+
+    <div class="page-header">
+      <h1>Sent Reminders</h1>
+      <h4>Previously sent reminders</h4>
+       <table border="1">
+          {% for reminder in pastReminders %}
+              <tr>
+                <td>{{reminder.title}} </td>
+                <td> {{reminder.next_run}} </td>
+                <td> {{reminder.url}} </td>
+                <td><a href="http://localhost:3001/deletereminder?remId={{reminder.remId}}"> Delete </a></td>
+                <td><a href=""> Change </a></td>
+              </tr>
+          {% endfor %}
+        </table>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
-var dest = './build',
-  src = './src',
+var dest = './public/build',
+  src = './public',
   mui = './node_modules/material-ui/src';
 
 module.exports = {
@@ -14,10 +14,10 @@ module.exports = {
     ]
   },
   less: {
-    src: src + '/less/main.less',
+    src: src + '/stylesheets/less/main.less',
     watch: [
-      src + '/less/**',
-      mui + '/less/**'
+      src + '/stylesheets/less/**',
+      mui + '/stylesheets/less/**'
     ],
     dest: dest
   },
@@ -26,7 +26,7 @@ module.exports = {
     dest: dest
   },
   fonts: {
-    src: mui + '/less/material-design-fonticons/fonts/**',
+    src: mui + '/stylesheets/less/material-design-fonticons/fonts/**',
     dest: dest + '/fonts/mdfonticon'
   },
   muiFonts: {
@@ -39,7 +39,7 @@ module.exports = {
     // A separate bundle will be generated for each
     // bundle config in the list below
     bundleConfigs: [{
-      entries: src + '/app/app.jsx',
+      entries: './server/app.jsx',
       dest: dest,
       outputName: 'app.js'
     }]
