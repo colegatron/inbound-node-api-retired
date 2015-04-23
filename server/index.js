@@ -104,10 +104,10 @@ passportMiddleware(passport);
 app.use(viewHelper);
 
 // setup routes
-var reminderRoutes = require('./ReminderRoutes');
+var reminderRoutes = require('./reminder-routes');
 reminderRoutes(app, passport);
 
-var coreRoutes = require('./coreRoutes');
+var coreRoutes = require('./core-routes');
 coreRoutes(app, passport);
 
 /// catch 404 and forwarding to error handler
