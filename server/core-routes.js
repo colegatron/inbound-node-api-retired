@@ -26,6 +26,8 @@ registrations = require('./controllers/registrations-controller'),
 sessions = require('./controllers/sessions-controller'),
 handle_404 = require('./controllers/404-controller');
 
+var User = require('./models/user');
+
 var stripeWebhook = new StripeWebhook({
   stripeApiKey: secrets.stripeOptions.apiKey,
   respond: true
@@ -234,6 +236,49 @@ module.exports = function (app, passport) {
       }
   });
 
+  // Validation for API Key
+  function isValidApiKey(req, res, next) {
+
+      var key = req.query.api;
+      var site = req.query.site;
+      //console.log(site);
+      if (key) {
+          User.findOne({
+              'api_pubKey': key
+          }, function(err, user) {
+              // if there are any errors, return the error
+              console.log(user);
+
+              if (err) {
+                  res.json({'error': 'db error'});
+              }
+
+              if (!user) {
+                  res.json({'error': 'invalid api key'});
+              } else {
+                  if(user.profile.website === site && typeof(site) != "undefined") {
+                    return next();
+                  } else {
+                    res.json({'error': 'site domain doesnt match'});
+                  }
+
+              }
+          });
+      } else {
+        res.json({'error': 'no key provided'});
+      }
+  }
+
+  app.get('/api/test', isValidApiKey, function(req, res) {
+          // console.log(req.user.apiKey.key);
+          // Morgan logging here
+          // User found and key is valid, return this response
+          var slug = req.query.slug;
+          res.json({
+              'apikey': true,
+              'url': 'http://www.hudsonatwell.co/inboundnow/gitservlet.php?giturl=https://bitbucket.org/inboundnow/'+slug+'/get/master.zip'
+          });
+  });
 
   /* reminder routes
 
