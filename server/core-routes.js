@@ -237,10 +237,11 @@ module.exports = function (app, passport) {
   });
 
   // Validation for API Key
+  /*
   function isValidApiKey(req, res, next) {
 
       var key = req.query.api;
-      var site = req.query.site;
+      var site = req.query.site.replace("http://", "").replace("https://", "");
       //console.log(site);
       if (key) {
           User.findOne({
@@ -254,8 +255,11 @@ module.exports = function (app, passport) {
               }
 
               if (!user) {
+
                   res.json({'error': 'invalid api key'});
+
               } else {
+                  // check for domain match
                   if(user.profile.website === site && typeof(site) != "undefined") {
                     return next();
                   } else {
@@ -268,17 +272,66 @@ module.exports = function (app, passport) {
         res.json({'error': 'no key provided'});
       }
   }
+  */
+ function isValidApiKey(req, res, next) {
+     console.log(req);
+     var key = req.body.api;
+     var site = req.body.site.replace("http://", "").replace("https://", "");
+     //console.log(site);
+     if (key) {
+         User.findOne({
+             'api_pubKey': key
+         }, function(err, user) {
+             // if there are any errors, return the error
+             console.log(user);
 
+             if (err) {
+                 res.json({'error': 'db error'});
+             }
+
+             if (!user) {
+
+                 res.json({'error': 'invalid api key'});
+
+             } else {
+                 // check for domain match
+                 if(user.profile.website === site && typeof(site) != "undefined") {
+                   return next();
+                 } else {
+                   res.json({'error': 'site domain doesnt match'});
+                 }
+
+             }
+         });
+     } else {
+       res.json({'error': 'no key provided'});
+     }
+ }
+
+
+/*
   app.get('/api/test', isValidApiKey, function(req, res) {
           // console.log(req.user.apiKey.key);
           // Morgan logging here
           // User found and key is valid, return this response
-          var slug = req.query.slug;
+          var slug = req.query.download;
           res.json({
               'apikey': true,
               'url': 'http://www.hudsonatwell.co/inboundnow/gitservlet.php?giturl=https://bitbucket.org/inboundnow/'+slug+'/get/master.zip'
           });
   });
+*/
+
+app.post('/api/test', isValidApiKey, function(req, res) {
+        // console.log(req.user.apiKey.key);
+        // Morgan logging here
+        // User found and key is valid, return this response
+        var slug = req.body.download;
+        res.json({
+            'apikey': true,
+            'url': 'http://www.hudsonatwell.co/inboundnow/gitservlet.php?giturl=https://bitbucket.org/inboundnow/'+slug+'/get/master.zip'
+        });
+});
 
   /* reminder routes
 
