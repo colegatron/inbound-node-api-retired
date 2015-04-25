@@ -309,11 +309,11 @@ module.exports = function (app, passport) {
                  if (plan === "free") {
                     // free plan bail
                  }
-                 //var fromProf = getHostName(user.profile.website);
-                 if(getHostName(user.profile.website) === site && typeof(site) != "undefined") {
+                 var userSite = getHostName(user.profile.website);
+                 if(userSite === site && typeof(site) != "undefined") {
                    return next();
                  } else {
-                   res.json({'error': 'Site domain doesnt match. Make sure you set your Website URL on http://api.inboundnow.com/profile'});
+                   res.json({'error': 'Site domain '+userSite+' doesnt match '+site+'. Make sure you set your Website URL on http://api.inboundnow.com/profile.'});
                  }
 
              }
