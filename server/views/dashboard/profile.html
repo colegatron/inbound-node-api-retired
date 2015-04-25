@@ -6,11 +6,13 @@
   <div class="container-fluid container-max">
     <div class="page-header">
       <h1>Account Info</h1>
+      <h4>Your API key is: {{user.api_pubKey}} </h4>
+      <h4 style="display:none">Referral URL : <a href="http://localhost:3001/ref/{{user.ref_token}}"> http://localhost:3001/ref/{{user.ref_token}} </a></h4>
     </div>
     {% include "../partials/flash.html" %}
     <div class="page-header">
       <h3>Profile</h3>
-      <h4>Referral URL : <a href="http://localhost:3001/ref/{{user.ref_token}}"> http://localhost:3001/ref/{{user.ref_token}} </a></h4>
+
     </div>
     <form action="/user" method="POST" class="form-horizontal">
       <div class="form-group" >

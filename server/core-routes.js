@@ -273,11 +273,21 @@ module.exports = function (app, passport) {
       }
   }
   */
+  function getHostName(url) {
+      var match = url.match(/:\/\/(www[0-9]?\.)?(.[^/:]+)/i);
+      if (match != null && match.length > 2 &&
+          typeof match[2] === 'string' && match[2].length > 0) {
+      return match[2];
+      }
+      else {
+          return url;
+      }
+  }
  function isValidApiKey(req, res, next) {
-     console.log(req);
+     //console.log(req);
      var key = req.body.api;
-     var site = req.body.site.replace("http://", "").replace("https://", "");
-     //console.log(site);
+     var site = req.body.site; // hostname from WP
+
      if (key) {
          User.findOne({
              'api_pubKey': key
@@ -295,16 +305,21 @@ module.exports = function (app, passport) {
 
              } else {
                  // check for domain match
-                 if(user.profile.website === site && typeof(site) != "undefined") {
+                 var plan = user.stripe.plan;
+                 if (plan === "free") {
+                    // free plan bail
+                 }
+                 //var fromProf = getHostName(user.profile.website);
+                 if(getHostName(user.profile.website) === site && typeof(site) != "undefined") {
                    return next();
                  } else {
-                   res.json({'error': 'site domain doesnt match'});
+                   res.json({'error': 'Site domain doesnt match. Make sure you set your Website URL on http://api.inboundnow.com/profile'});
                  }
 
              }
          });
      } else {
-       res.json({'error': 'no key provided'});
+       res.json({'error': 'no API key provided. Please set your API key in settings'});
      }
  }
 
