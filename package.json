@@ -73,6 +73,7 @@
     "express-session": "*",
     "express-subdomain": "^1.0.1",
     "express-validator": "^2.6.0",
+    /*"mongo-express": "*",*/
     "lodash": "^2.4.1",
     "mandrill-api": "^1.0.41",
     "material-ui": "^0.6.1",
