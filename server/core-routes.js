@@ -265,44 +265,6 @@ module.exports = function (app, passport) {
         }
     });
 
-    // Validation for API Key
-    /*
-    function isValidApiKey(req, res, next) {
-
-        var key = req.query.api;
-        var site = req.query.site.replace("http://", "").replace("https://", "");
-        //console.log(site);
-        if (key) {
-            User.findOne({
-                    'api_pubKey': key
-            }, function(err, user) {
-                    // if there are any errors, return the error
-                    console.log(user);
-
-                    if (err) {
-                            res.json({'error': 'db error'});
-                    }
-
-                    if (!user) {
-
-                            res.json({'error': 'invalid api key'});
-
-                    } else {
-                            // check for domain match
-                            if(user.profile.website === site && typeof(site) != "undefined") {
-                                return next();
-                            } else {
-                                res.json({'error': 'site domain doesnt match'});
-                            }
-
-                    }
-            });
-        } else {
-            res.json({'error': 'no key provided'});
-        }
-    }
-    */
-
     /**
      * Gets host name from url
      * @param url
@@ -326,16 +288,14 @@ module.exports = function (app, passport) {
      * @param next
      */
     function isValidApiKey(req, res, next) {
-         //console.log(req);
+         //console.log(req.body);
          var key = req.body.api;
          var site = req.body.site; // hostname from WP
-
+         //console.log(key +'+');
          if (key) {
              User.findOne({
                  'api_pubKey': key
              }, function(err, user) {
-                 // if there are any errors, return the error
-                 console.log(user);
 
                  if (err) {
                          res.json({'error': 'db error'});
@@ -352,6 +312,11 @@ module.exports = function (app, passport) {
                             // free plan bail
                      }
                      var userSite = getHostName(user.profile.website);
+                     userSite = userSite.replace('http://','');
+                     userSite = userSite.replace('https://','');
+                     site = site.replace('http://','');
+                     site = site.replace('https://','');
+
                      if(userSite === site && typeof(site) != "undefined") {
                          return next();
                      } else {
@@ -365,40 +330,28 @@ module.exports = function (app, passport) {
         }
     }
 
+    /**
+     * Endpoint to get download zip
+     */
+    app.post('/api/downloads/zip', isValidApiKey, function(req, res) {
 
-    /*
-    app.get('/api/test', isValidApiKey, function(req, res) {
-        // console.log(req.user.apiKey.key);
-        // Morgan logging here
-        // User found and key is valid, return this response
-        var slug = req.query.download;
-        res.json({
-                'apikey': true,
-                'url': 'http://www.hudsonatwell.co/inboundnow/gitservlet.php?giturl=https://bitbucket.org/inboundnow/'+slug+'/get/master.zip'
-        });
-    });
-    */
+        var slug = req.body.filename;
+        var type = req.body.type;
 
-    app.post('/api/test', isValidApiKey, function(req, res) {
-        // console.log(req.user.apiKey.key);
-        // Morgan logging here
-        // User found and key is valid, return this response
-        var slug = req.body.download;
         res.json({
             'apikey': true,
             'url': 'http://www.hudsonatwell.co/inboundnow/gitservlet.php?giturl=https://bitbucket.org/inboundnow/'+slug+'/get/master.zip'
         });
     });
 
-    /* reminder routes
-    app.get('/api/reminder/create', function(req, res, next) {
-
+    /**
+     * Endpoint to check if license key is valid
+     */
+    app.post('/api/key/check', isValidApiKey, function(req, res) {
+        res.json({
+            'apikey': true
+        });
     });
-
-    app.get('/reminders/count', function(req, res, next) {
-
-    });
-    */
 
     /* logged in 404 */
     app.get('/404-error', function(req, res) {

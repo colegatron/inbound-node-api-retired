@@ -100,17 +100,18 @@ app.use(cors(corsOptions));
 var passportMiddleware = require('./middleware/passport');
 passportMiddleware(passport);
 
-// setup view helper
+/* setup view helper */
 app.use(viewHelper);
 
-// setup routes
+/* Setup Reminder Routes */
 var reminderRoutes = require('./reminder-routes');
 reminderRoutes(app, passport);
 
+/* Set Inbound API Routes */
 var coreRoutes = require('./core-routes');
 coreRoutes(app, passport);
 
-/// catch 404 and forwarding to error handler
+/* catch 404 and forwarding to error handler */
 app.use(errorHandler.notFound);
 
 /// error handlers
