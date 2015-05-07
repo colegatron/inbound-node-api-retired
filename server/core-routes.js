@@ -354,22 +354,10 @@ module.exports = function (app, passport) {
      * Endpoint to get information about the inbound pro plugin that can be used by user's client
      */
     app.get('/api/pro/info', isValidApiKey, function(req, res) {
-        var pro = new proDownload();
-        var json;
 
-        pro.getTransient( function(transient) {
-            if (transient) {
-                res.json(JSON.parse(transient.value));
-            } else {
-                json = pro
-                    .setupStaticVars()
-                    .getLatestTag()
-                    .getDownloadURL()
-                    .getSections()
-                    .getJSON();
-
-                res.json(json);
-            }
+        proDownload.loadReleases( function() {
+           var json =  proDownload.getJsonObject()
+           res.json(json);
         });
 
     });

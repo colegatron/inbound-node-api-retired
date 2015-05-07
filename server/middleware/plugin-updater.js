@@ -8,12 +8,14 @@ var EventEmitter = require('events').EventEmitter
   , request = require('request')
   , path = require('path')
   , fs = require('fs-extra')
-  , moment = require('moment')
   , AdmZip = require('adm-zip')
   , util = require('util')
   , cwd = process.cwd()
-  , Transient = require('./../models/transient-cache');
+  , sortBy = require('sort-by')
+  , transient = new require('./../middleware/transients');
 
+/* instanstiate */
+Transient = new transient;
 
 /**
  *
@@ -22,156 +24,149 @@ var EventEmitter = require('events').EventEmitter
  * @returns {*}
  * @constructor
  */
-module.exports = function()  {
+inboundProInfo = {
 
-    this.setupStaticVars = function() {
-        this.name = 'Inbound Pro',
-        this.author = 'Inbound Now',
-        this.user = 'inboundnow'
-        this.repo = 'inbound-pro'
-        this.ref = 'master'
-        this.dir = ''
-        this._log = []
-        this._getZip = false
-        this.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
+    loadReleases: function( callback ) {
+        this.setupStaticVars();
+        this.makeRequest('https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases' , function( data ) {
+            inboundProInfo.releases =  JSON.parse(data);
+            inboundProInfo.getLatestRelease();
+            inboundProInfo.getSections();
+            callback();
+        });
+    },
 
-        return this;
-    };
+    setupStaticVars: function() {
+        inboundProInfo.name = 'Inbound Pro',
+        inboundProInfo.author = 'Inbound Now',
+        inboundProInfo.user = 'inboundnow'
+        inboundProInfo.repo = 'inbound-pro'
+        inboundProInfo.ref = 'master'
+        inboundProInfo.dir = ''
+        inboundProInfo._log = []
+        inboundProInfo._getZip = false
+        inboundProInfo.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
+        inboundProInfo.download_url = 'http://api.inboundnow.com/api/pro/get'
+
+    },
 
     /**
      *  generate json object containing information about pro plugin and create a tranient cache
      * @returns {{name: *, version: *, author: *, download_url: *, sections: *}|*}
      */
-    this.getJSON = function() {
+    getJsonObject:  function() {
 
         json =  {
-            name: this.name,
-            version: this.version ,
-            author: this.author,
-            download_url: this.download_url ,
-            sections : this.sections
+            name: inboundProInfo.name,
+            version: inboundProInfo.latestTag ,
+            author: inboundProInfo.author,
+            download_url: inboundProInfo.download_url ,
+            sections : inboundProInfo.sections
         }
 
-        this.createTransient( json );
+        Transient.createTransient( 'proInfo' , json );
 
         return json;
 
 
-    };
+    },
 
-    /**
-     * Get cached json file
-     * @returns {*}
-     */
-    this.getTransient = function( callback ) {
-
-        var transient = Transient.findOne({
-            "key": 'proPluginJson',
-            "expire" :  { $gt: moment().format() }
-        }, function(err, transient) {
-
-            if (err) {
-                console.log({'error': 'db error'});
-                console.log(err);
-            }
-
-            if (transient) {
-                this.transient = transient;
-            } else {
-                this.transient = false;
-            }
-
-            callback(this.transient);
-        })
-
-        return this;
-    };
-
-    /**
-     * create cached json file
-     * @param json
-     */
-    this.createTransient = function( json) {
-
-        console.log('[transients] creating transient of json data for Inbound Pro\'s updater class. expires in 30 minutes.');
-        var transient = new Transient({
-            'key' : 'proPluginJson',
-            'expire' : moment().add( 30 , 'minute' ).format(),
-            'value' : JSON.stringify(json)
-        });
-
-        transient.save(function(err) {
-            if (err) {
-                console.log('{ error: \'Cannot save the transient\'}');
-            }
-        });
-    };
-
-    /**
-     * get tags from inbound-pro
-     * @returns {exports}
-     */
-    this.getTags = function() {
-        makeRequest.call( this, 'https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases' , function( data ) {
-            console.log( data )
-        });
-        return this;
-    };
 
     /**
      * get the latest tag from tags returned
      * @returns {exports}
      */
-    this.getLatestTag = function() {
-       this.version = '1.0.1'
-       return this;
-    };
+    getLatestRelease: function() {
+        inboundProInfo.releases.sort(sortBy('-tag_name'));
+        inboundProInfo.latestTag = inboundProInfo.releases[0].tag_name;
+        inboundProInfo.zipBallURL = inboundProInfo.releases[0].zipball_url;
+    },
 
-    this.getDownloadURL = function() {
-       this.download_url = 'http://example.com/plugins/my-cool-plugin.zip'
-       return this;
-    };
-
-    this.getSections = function() {
-        this.sections =  {
+    getSections: function( ) {
+        inboundProInfo.sections =  {
             sections: {
                 description: 'Description about Inbound Pro Here!'
             }
         }
+    },
+
+    getZipFile: function() {
+        inboundProInfo.makeRequest.call( this, inboundProInfo.zipBallURL , inboundProInfo.processZipFile )
         return this;
-    };
+    },
 
-    this.getZip = function() {
-
-        dir = dir || process.cwd()
-        /* get zip file */
-        makeRequest.call( this, 'https://api.github.com/repos/'+this.user+'/'+ this.repo +'/zipball', processZipFile )
-
-    };
-
-    this.processZipFile = function( file ) {
-        console.log('https://api.github.com/repos/'+this.user+'/'+this.repo+'/zipball');
+    processZipFile: function( file ) {
+        var zip = new AdmZip();
         console.log(file);
-    };
+        // zip.addFile("./../files/inbound-pro.zip", new Buffer( file ), "comment here");
 
-    this.makeRequest = function( url, callback ) {
+    },
+
+    makeRequest: function( url, callback ) {
         request(
             {
                 url: url,
                 headers: {
                     'user-agent': 'node.js',
-                    'Authorization' : 'token ' + this.token
+                    'Authorization' : 'token ' + inboundProInfo.token
                 }
             }, function(err, resp, body) {
-                console.log(err);
-                console.log(resp);
-                console.log(body);
+                callback( body );
             }
         )
-    };
+    },
+
+    downloadZip: function() {
+
+
+        fs.mkdir(tmpdir, function (err) {
+
+            if (err) _inboundProInfo.emit('error', err)
+
+            request.get( inboundProInfo.zipBallURL ).pipe(fs.createWriteStream(zipFile)).on('close', function() {
+
+                inboundProInfo.extractZip.call(_this, inboundProInfo.zipBallURL, tmpdir, function() {
+
+                    var oldPath = path.join(tmpdir, zipBaseDir)
+
+                    fs.rename(oldPath, 'files', function(err) {
+                        if (err) _inboundProInfo.emit('error', err)
+                        fs.remove(tmpdir, function(err) {
+                            if (err) _inboundProInfo.emit('error', err)
+                            _inboundProInfo.emit('end')
+                        })
+                    })
+
+                })
+            })
+        })
+    },
+
+    extractZip: function(zipFile, outputDir, callback) {
+        var zip = new AdmZip(zipFile)
+            , entries = zip.getEntries()
+            , pending = entries.length
+            , _this = this
+
+        function checkDone (err) {
+            if (err) _inboundProInfo.emit('error', err)
+            pending -= 1
+            if (pending === 0) callback()
+        }
+
+        entries.forEach(function(entry) {
+            if (entry.isDirectory) return checkDone()
+
+            var file = path.resolve(outputDir, entry.entryName)
+            fs.outputFile(file, entry.getData(), checkDone)
+        })
+    },
+
+
 
 }
 
+module.exports = inboundProInfo;
 
 /****************************
  * PRIVATE METHODS
@@ -179,68 +174,11 @@ module.exports = function()  {
 
 
 
-function downloadZip() {
-  var _this = this;
-  if (_this._getZip) return;
-  _this._getZip = true
+/**
+ * Testing grounds
+ */
 
-  _this._log.forEach(function(file) {
-    fs.remove(file)
-  })
+inboundProInfo.loadReleases( function() {
+    //console.log(inboundProInfo.getJsonObject())
 
-  var tmpdir = generateTempDir()
-    , zipBaseDir = _this.repo + '-' + _this.ref
-    , zipFile = path.join(tmpdir, zipBaseDir + '.zip')
-
-  var zipUrl = "https://nodeload.github.com/" + _this.user + "/" + _this.repo + "/zip/" + _this.ref
-  _this.emit('zip', zipUrl)
-
-  //console.log(zipUrl)
-  fs.mkdir(tmpdir, function (err) {
-    if (err) _this.emit('error', err)
-    request.get(zipUrl).pipe(fs.createWriteStream(zipFile)).on('close', function() {
-      //fs.createReadStream(zipFile).pipe(unzip.Extract({path: tmpdir})).on('close', function() {
-      extractZip.call(_this, zipFile, tmpdir, function() {
-        var oldPath = path.join(tmpdir, zipBaseDir)
-        //console.log(oldPath)
-        fs.rename(oldPath, _this.dir, function(err) {
-          if (err) _this.emit('error', err)
-          fs.remove(tmpdir, function(err) {
-            if (err) _this.emit('error', err)
-            _this.emit('end')
-          })
-        })
-      })
-    })
-  })
-
-}
-
-function generateTempDir () {
-  return path.join(cwd, Date.now().toString() + '-' + Math.random().toString().substring(2))
-}
-
-function extractZip (zipFile, outputDir, callback) {
-  var zip = new AdmZip(zipFile)
-    , entries = zip.getEntries()
-    , pending = entries.length
-    , _this = this
-
-  function checkDone (err) {
-    if (err) _this.emit('error', err)
-    pending -= 1
-    if (pending === 0) callback()
-  }
-
-  entries.forEach(function(entry) {
-    if (entry.isDirectory) return checkDone()
-
-    var file = path.resolve(outputDir, entry.entryName)
-    fs.outputFile(file, entry.getData(), checkDone)
-  })
-}
-
-
-
-
-
+});
