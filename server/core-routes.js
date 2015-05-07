@@ -1,23 +1,24 @@
 'use strict';
 
-// middleware
+/* load middleware */
 var StripeWebhook = require('stripe-webhook-middleware'),
 isAuthenticated = require('./middleware/auth').isAuthenticated,
 isUnauthenticated = require('./middleware/auth').isUnauthenticated,
 setRender = require('middleware-responder').setRender,
 setRedirect = require('middleware-responder').setRedirect,
 stripeEvents = require('./middleware/stripe-events'),
-secrets = require('./config/secrets');
+secrets = require('./config/secrets'),
+proDownload = require('./middleware/plugin-updater'),
+exec = require('exec'),
+passport = require('passport');
 
-var passport = require('passport');
 
-
-// react
+/* load react addons & components */
 var React = require('react/addons');
 var App = React.createFactory(require('./components/main.jsx'));
 
 
-// controllers
+/* require controllers */
 var users = require('./controllers/users-controller'),
 main = require('./controllers/main-controller'),
 dashboard = require('./controllers/dashboard-controller'),
@@ -26,7 +27,9 @@ registrations = require('./controllers/registrations-controller'),
 sessions = require('./controllers/sessions-controller'),
 handle_404 = require('./controllers/404-controller');
 
+/* require models */
 var User = require('./models/user');
+var Transient = require('./models/transient-cache');
 
 var stripeWebhook = new StripeWebhook({
     stripeApiKey: secrets.stripeOptions.apiKey,
@@ -282,16 +285,33 @@ module.exports = function (app, passport) {
     }
 
     /**
+     * Checks for both POST & GET for params
+     * @param req
+     */
+    function getRequestParam( req , key ) {
+
+        if ( typeof req.body[key] != 'undefined' ) {
+            return  req.body[key];
+        }
+
+        if ( typeof req.query[key] != 'undefined' ) {
+            return req.query[key];
+        }
+
+        return '';
+    }
+
+    /**
      * Checks to see if API Key is valid
      * @param req
      * @param res
      * @param next
      */
     function isValidApiKey(req, res, next) {
-         //console.log(req.body);
-         var key = req.body.api;
-         var site = req.body.site; // hostname from WP
-         //console.log(key +'+');
+
+         var key = getRequestParam( req , 'api');
+         var site = getRequestParam( req , 'site');
+
          if (key) {
              User.findOne({
                  'api_pubKey': key
@@ -329,6 +349,30 @@ module.exports = function (app, passport) {
          res.json({'error': 'no API key provided. Please set your API key in settings'});
         }
     }
+
+    /**
+     * Endpoint to get information about the inbound pro plugin that can be used by user's client
+     */
+    app.get('/api/pro/info', isValidApiKey, function(req, res) {
+        var pro = new proDownload();
+        var json;
+
+        pro.getTransient( function(transient) {
+            if (transient) {
+                res.json(JSON.parse(transient.value));
+            } else {
+                json = pro
+                    .setupStaticVars()
+                    .getLatestTag()
+                    .getDownloadURL()
+                    .getSections()
+                    .getJSON();
+
+                res.json(json);
+            }
+        });
+
+    });
 
     /**
      * Endpoint to get download zip
