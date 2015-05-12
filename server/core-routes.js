@@ -10,7 +10,8 @@ stripeEvents = require('./middleware/stripe-events'),
 secrets = require('./config/secrets'),
 proDownload = require('./middleware/plugin-updater'),
 exec = require('exec'),
-passport = require('passport');
+passport = require('passport'),
+spawn = require('child_process').spawn;
 
 
 /* load react addons & components */
@@ -354,10 +355,39 @@ module.exports = function (app, passport) {
      * Endpoint to get information about the inbound pro plugin that can be used by user's client
      */
     app.get('/api/pro/info', isValidApiKey, function(req, res) {
+        var json =  proDownload.getJsonObject( getRequestParam( req , 'api') , getRequestParam( req , 'site') )
+        res.json(json);
+    });
 
-        proDownload.loadReleases( function() {
-           var json =  proDownload.getJsonObject()
-           res.json(json);
+    /**
+     * Endpoint to get download zip file
+     */
+    app.get('/api/pro/zip', isValidApiKey, function(req, res) {
+
+        // Options -r recursive -j ignore directory info - redirect to stdout
+        var zip = spawn('zip', ['-rj', '-', './files/inbound-pro.zip']);
+
+        res.contentType('zip');
+
+        // Keep writing stdout to res
+        zip.stdout.on('data', function (data) {
+            res.write(data);
+        });
+
+        zip.stderr.on('data', function (data) {
+            // Uncomment to see the files being added
+            //console.log('zip stderr: ' + data);
+        });
+
+        // End the response on zip exit
+        zip.on('exit', function (code) {
+            if(code !== 0) {
+                res.statusCode = 500;
+                console.log('zip process exited with code ' + code);
+                res.end();
+            } else {
+                res.end();
+            }
         });
 
     });

@@ -10,7 +10,10 @@
   when you run `gulp`.
 */
 
-var requireDir = require('require-dir');
+var requireDir = require('requiredir'),
+    gulp = require('gulp');
 
 // Require all tasks in gulp/tasks, including subfolders
 requireDir('./gulp/tasks', { recurse: true });
+
+

@@ -8,14 +8,12 @@ var EventEmitter = require('events').EventEmitter
   , request = require('request')
   , path = require('path')
   , fs = require('fs-extra')
-  , AdmZip = require('adm-zip')
   , util = require('util')
   , cwd = process.cwd()
   , sortBy = require('sort-by')
+  , express = require('express')
   , transient = new require('./../middleware/transients');
 
-/* instanstiate */
-Transient = new transient;
 
 /**
  *
@@ -25,28 +23,49 @@ Transient = new transient;
  * @constructor
  */
 inboundProInfo = {
-
+    /**
+     * get releases from github & build
+     * @param callback
+     */
     loadReleases: function( callback ) {
         this.setupStaticVars();
+
+        /* announce task */
+        console.log('[middlewear/plugin-updater] retrieving release data from ' + 'https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases');
+
+        /* get releases from ziphub */
         this.makeRequest('https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases' , function( data ) {
             inboundProInfo.releases =  JSON.parse(data);
+            //console.log(inboundProInfo.releases);
             inboundProInfo.getLatestRelease();
             inboundProInfo.getSections();
-            callback();
+
+            /* get zipball */
+            console.log('[middlewear/plugin-updater] downloading ' +inboundProInfo.zipBallURL );
+            inboundProInfo.makeRequest.call( this, inboundProInfo.zipBallURL , function( file ) {
+                inboundProInfo.processZipFile( file , function() {
+                    callback();
+
+                });
+            });
+
         });
     },
 
     setupStaticVars: function() {
-        inboundProInfo.name = 'Inbound Pro',
-        inboundProInfo.author = 'Inbound Now',
-        inboundProInfo.user = 'inboundnow'
-        inboundProInfo.repo = 'inbound-pro'
-        inboundProInfo.ref = 'master'
-        inboundProInfo.dir = ''
-        inboundProInfo._log = []
-        inboundProInfo._getZip = false
-        inboundProInfo.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
-        inboundProInfo.download_url = 'http://api.inboundnow.com/api/pro/get'
+            inboundProInfo.apiurl =  (require('os').platform() == ( 'win32' || 'darwin' ) ) ? 'http://localhost:3001/api/' : 'http://api.inboundnow.com/api/'
+            console.log(inboundProInfo.apiurl)
+            inboundProInfo.name = 'Inbound Pro'
+            inboundProInfo.author = 'Inbound Now'
+            inboundProInfo.user = 'inboundnow'
+            inboundProInfo.repo = 'inbound-pro'
+            inboundProInfo.ref = 'master'
+            inboundProInfo.dir = ''
+            inboundProInfo._log = []
+            inboundProInfo._getZip = false
+            inboundProInfo.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
+            inboundProInfo.download_url = inboundProInfo.apiurl + 'pro/zip'
+            inboundProInfo.membership_url = 'http://www.inboundnow.com'
 
     },
 
@@ -58,16 +77,15 @@ inboundProInfo = {
 
         json =  {
             name: inboundProInfo.name,
-            version: inboundProInfo.latestTag ,
+            new_version: inboundProInfo.latestTag ,
             author: inboundProInfo.author,
-            download_url: inboundProInfo.download_url ,
+            package: inboundProInfo.download_url ,
+            update: inboundProInfo.download_url ,
+            url: inboundProInfo.membership_url ,
             sections : inboundProInfo.sections
         }
 
-        Transient.createTransient( 'proInfo' , json );
-
         return json;
-
 
     },
 
@@ -80,13 +98,12 @@ inboundProInfo = {
         inboundProInfo.releases.sort(sortBy('-tag_name'));
         inboundProInfo.latestTag = inboundProInfo.releases[0].tag_name;
         inboundProInfo.zipBallURL = inboundProInfo.releases[0].zipball_url;
+        console.log('[middlewear/plugin-updater] serving ' +inboundProInfo.latestTag + ' of inbound-pro.zip' );
     },
 
     getSections: function( ) {
-        inboundProInfo.sections =  {
-            sections: {
-                description: 'Description about Inbound Pro Here!'
-            }
+        inboundProInfo.sections = {
+            description: inboundProInfo.releases[0].body
         }
     },
 
@@ -95,73 +112,37 @@ inboundProInfo = {
         return this;
     },
 
-    processZipFile: function( file ) {
-        var zip = new AdmZip();
-        console.log(file);
-        // zip.addFile("./../files/inbound-pro.zip", new Buffer( file ), "comment here");
+    processZipFile: function( file , callback ) {
+
+        console.log('[middlewear/plugin-updater] building inbound-pro.zip');
+
+        fs.writeFile("./server/files/inbound-pro.zip", file, function(err) {
+            console.log('[middlewear/plugin-updater] inbound-pro.zip created!');
+            callback();
+        });
 
     },
 
+    /**
+     * Makre request to URL and return response body
+     * @param url
+     * @param callback
+     */
     makeRequest: function( url, callback ) {
         request(
             {
                 url: url,
+                encoding: null,
                 headers: {
                     'user-agent': 'node.js',
                     'Authorization' : 'token ' + inboundProInfo.token
                 }
             }, function(err, resp, body) {
+                if(err) throw err;
                 callback( body );
             }
         )
-    },
-
-    downloadZip: function() {
-
-
-        fs.mkdir(tmpdir, function (err) {
-
-            if (err) _inboundProInfo.emit('error', err)
-
-            request.get( inboundProInfo.zipBallURL ).pipe(fs.createWriteStream(zipFile)).on('close', function() {
-
-                inboundProInfo.extractZip.call(_this, inboundProInfo.zipBallURL, tmpdir, function() {
-
-                    var oldPath = path.join(tmpdir, zipBaseDir)
-
-                    fs.rename(oldPath, 'files', function(err) {
-                        if (err) _inboundProInfo.emit('error', err)
-                        fs.remove(tmpdir, function(err) {
-                            if (err) _inboundProInfo.emit('error', err)
-                            _inboundProInfo.emit('end')
-                        })
-                    })
-
-                })
-            })
-        })
-    },
-
-    extractZip: function(zipFile, outputDir, callback) {
-        var zip = new AdmZip(zipFile)
-            , entries = zip.getEntries()
-            , pending = entries.length
-            , _this = this
-
-        function checkDone (err) {
-            if (err) _inboundProInfo.emit('error', err)
-            pending -= 1
-            if (pending === 0) callback()
-        }
-
-        entries.forEach(function(entry) {
-            if (entry.isDirectory) return checkDone()
-
-            var file = path.resolve(outputDir, entry.entryName)
-            fs.outputFile(file, entry.getData(), checkDone)
-        })
-    },
-
+    }
 
 
 }
@@ -175,10 +156,22 @@ module.exports = inboundProInfo;
 
 
 /**
- * Testing grounds
+ * Create server loop to rebuild plugin information every 30 minutes
+ */
+setInterval( function() {
+    rebuildPluginData();
+} , 1000 * 60 * 30  );
+
+/**
+ * Generate first instance of plugin data on server start
  */
 
-inboundProInfo.loadReleases( function() {
-    //console.log(inboundProInfo.getJsonObject())
+rebuildPluginData();
 
-});
+
+/**
+ * method to generate plugin data
+ */
+function rebuildPluginData() {
+    inboundProInfo.loadReleases( function() { });
+}
