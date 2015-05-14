@@ -363,40 +363,23 @@ module.exports = function (app, passport) {
      * Endpoint to get download zip file
      */
     app.get('/api/pro/zip', isValidApiKey, function(req, res) {
-
-        // Options -r recursive -j ignore directory info - redirect to stdout
-        var zip = spawn('zip', ['-rj', '-', './files/inbound-pro.zip']);
-
-        res.contentType('zip');
-
-        // Keep writing stdout to res
-        zip.stdout.on('data', function (data) {
-            res.write(data);
-        });
-
-        zip.stderr.on('data', function (data) {
-            // Uncomment to see the files being added
-            //console.log('zip stderr: ' + data);
-        });
-
-        // End the response on zip exit
-        zip.on('exit', function (code) {
-            if(code !== 0) {
-                res.statusCode = 500;
-                console.log('zip process exited with code ' + code);
-                res.end();
+        var file = './server/files/inbound-pro.zip';
+        res.set('Content-Type', 'application/zip');
+        res.download(file , 'inbound-pro.zip' , function(err){
+            if (err) {
+                // Handle error, but keep in mind the response may be partially-sent
+                // so check res.headersSent
             } else {
-                res.end();
+                // decrement a download credit, etc.
             }
         });
-
     });
 
     /**
      * Endpoint to get download zip
      */
     app.post('/api/downloads/zip', isValidApiKey, function(req, res) {
-
+        var zip = new Zip;
         var slug = req.body.filename;
         var type = req.body.type;
 

@@ -4,15 +4,15 @@
  */
 
 var EventEmitter = require('events').EventEmitter
-  , vcsurl = require('vcsurl')
-  , request = require('request')
-  , path = require('path')
-  , fs = require('fs-extra')
-  , util = require('util')
-  , cwd = process.cwd()
-  , sortBy = require('sort-by')
-  , express = require('express')
-  , transient = new require('./../middleware/transients');
+    , vcsurl = require('vcsurl')
+    , request = require('request')
+    , path = require('path')
+    , fs = require('fs-extra')
+    , util = require('util')
+    , cwd = process.cwd()
+    , sortBy = require('sort-by')
+    , express = require('express')
+    , transient = new require('./../middleware/transients');
 
 
 /**
@@ -27,45 +27,73 @@ inboundProInfo = {
      * get releases from github & build
      * @param callback
      */
-    loadReleases: function( callback ) {
+    loadInboundPro: function( callback ) {
         this.setupStaticVars();
 
         /* announce task */
         console.log('[middlewear/plugin-updater] retrieving release data from ' + 'https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases');
 
-        /* get releases from ziphub */
-        this.makeRequest('https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases' , function( data ) {
+
+        /* get releases from github */
+        inboundProInfo.makeRequest('https://api.github.com/repos/'+this.user+'/'+ this.repo +'/releases' , function( data ) {
+
+            /* sort releases decending */
             inboundProInfo.releases =  JSON.parse(data);
+            inboundProInfo.releases.sort(sortBy('-tag_name'));
             //console.log(inboundProInfo.releases);
-            inboundProInfo.getLatestRelease();
-            inboundProInfo.getSections();
 
-            /* get zipball */
-            console.log('[middlewear/plugin-updater] downloading ' +inboundProInfo.zipBallURL );
-            inboundProInfo.makeRequest.call( this, inboundProInfo.zipBallURL , function( file ) {
-                inboundProInfo.processZipFile( file , function() {
-                    callback();
+            /* get latest tag */
+            inboundProInfo.latestTag = inboundProInfo.releases[0].tag_name;
 
+            /* generate zip file url */
+            inboundProInfo.zipBallURL = inboundProInfo.releases[0].zipball_url;
+
+            /* generate content description from release notes */
+            inboundProInfo.sections = {
+                description: inboundProInfo.releases[0].body
+            }
+
+            /* get tag's commit reference from github - this is used by WordPress's PCLZip for modifying the zip file */
+            inboundProInfo.makeRequest('https://api.github.com/repos/'+inboundProInfo.user+'/'+ inboundProInfo.repo +'/git/refs/tags/' + inboundProInfo.latestTag  , function( data ) {
+                inboundProInfo.tags =  JSON.parse(data);
+                inboundProInfo.releaseReference = inboundProInfo.tags.object.sha;
+
+                /* notify console of the latest release */
+                console.log('[middlewear/plugin-updater] serving ' +inboundProInfo.latestTag + ' ('+inboundProInfo.releaseReference+') of inbound-pro.zip' );
+
+                /* download and store zipfile locally */
+                console.log('[middlewear/plugin-updater] downloading ' +inboundProInfo.zipBallURL );
+                inboundProInfo.makeRequest.call( this, inboundProInfo.zipBallURL , function( file ) {
+                    inboundProInfo.processZipFile( file , function() {
+
+                        /* all work is done, perform callback */
+                        callback();
+
+                    });
                 });
+
             });
+
+
+
+
 
         });
     },
 
     setupStaticVars: function() {
-            inboundProInfo.apiurl =  (require('os').platform() == ( 'win32' || 'darwin' ) ) ? 'http://localhost:3001/api/' : 'http://api.inboundnow.com/api/'
-            console.log(inboundProInfo.apiurl)
-            inboundProInfo.name = 'Inbound Pro'
-            inboundProInfo.author = 'Inbound Now'
-            inboundProInfo.user = 'inboundnow'
-            inboundProInfo.repo = 'inbound-pro'
-            inboundProInfo.ref = 'master'
-            inboundProInfo.dir = ''
-            inboundProInfo._log = []
-            inboundProInfo._getZip = false
-            inboundProInfo.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
-            inboundProInfo.download_url = inboundProInfo.apiurl + 'pro/zip'
-            inboundProInfo.membership_url = 'http://www.inboundnow.com'
+        inboundProInfo.apiurl =  (require('os').platform() == ( 'win32' || 'darwin' ) ) ? 'http://localhost:3001/api/' : 'http://api.inboundnow.com/api/'
+        inboundProInfo.name = 'Inbound Pro'
+        inboundProInfo.author = 'Inbound Now'
+        inboundProInfo.user = 'inboundnow'
+        inboundProInfo.repo = 'inbound-pro'
+        inboundProInfo.ref = 'master'
+        inboundProInfo.dir = ''
+        inboundProInfo._log = []
+        inboundProInfo._getZip = false
+        inboundProInfo.token = '6a7ef913af068988ccefaef59487ffdb76218d6e'
+        inboundProInfo.download_url = inboundProInfo.apiurl + 'pro/zip'
+        inboundProInfo.membership_url = 'http://www.inboundnow.com'
 
     },
 
@@ -82,7 +110,8 @@ inboundProInfo = {
             package: inboundProInfo.download_url ,
             update: inboundProInfo.download_url ,
             url: inboundProInfo.membership_url ,
-            sections : inboundProInfo.sections
+            sections : inboundProInfo.sections,
+            commit_reference : inboundProInfo.releaseReference
         }
 
         return json;
@@ -95,16 +124,11 @@ inboundProInfo = {
      * @returns {exports}
      */
     getLatestRelease: function() {
-        inboundProInfo.releases.sort(sortBy('-tag_name'));
-        inboundProInfo.latestTag = inboundProInfo.releases[0].tag_name;
-        inboundProInfo.zipBallURL = inboundProInfo.releases[0].zipball_url;
-        console.log('[middlewear/plugin-updater] serving ' +inboundProInfo.latestTag + ' of inbound-pro.zip' );
+
     },
 
     getSections: function( ) {
-        inboundProInfo.sections = {
-            description: inboundProInfo.releases[0].body
-        }
+
     },
 
     getZipFile: function() {
@@ -173,5 +197,7 @@ rebuildPluginData();
  * method to generate plugin data
  */
 function rebuildPluginData() {
-    inboundProInfo.loadReleases( function() { });
+    /* announce task */
+    console.log('[middlewear/plugin-updater] generating inbound-pro');
+    inboundProInfo.loadInboundPro( function() { });
 }
