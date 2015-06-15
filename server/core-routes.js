@@ -379,7 +379,6 @@ module.exports = function (app, passport) {
      * Endpoint to get download zip
      */
     app.post('/api/downloads/zip', isValidApiKey, function(req, res) {
-        var zip = new Zip;
         var slug = req.body.filename;
         var type = req.body.type;
 
